@@ -29,4 +29,9 @@ class FirestoreHelper {
   Future<void> removeNote(String noteId) async {
     await noteRef.doc(noteId).delete();
   }
+
+  // * Fungsi update note
+  Future<void> updateNote(String noteId, NoteModel note) async {
+    await noteRef.doc(noteId).set(note);
+  }
 }
