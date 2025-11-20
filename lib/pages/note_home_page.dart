@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_note/db_helper.dart';
+import 'package:flutter_note/firebase/firestore_helper.dart';
 import 'package:flutter_note/models/note_model.dart';
 import 'package:flutter_note/pages/note_editor_page.dart';
 
@@ -11,7 +11,7 @@ class NoteHomePage extends StatefulWidget {
 }
 
 class _NoteListPageState extends State<NoteHomePage> {
-  final DbHelper dbHelper = DbHelper.instance;
+  final FirestoreHelper fsHelper = FirestoreHelper();
 
   List<NoteModel> _notes = [];
 
@@ -22,9 +22,9 @@ class _NoteListPageState extends State<NoteHomePage> {
   }
 
   Future<void> _loadNotes() async {
-    // TODO: Load notes from database
-    // Simulating database with sample data
-    final noteList = await dbHelper.fetchNotes();
+    final noteList = await fsHelper.getAllNotes();
+
+    if (!mounted) return;
 
     setState(() {
       _notes = noteList;
@@ -32,34 +32,28 @@ class _NoteListPageState extends State<NoteHomePage> {
   }
 
   void _navigateToCreateNote() async {
-    // Navigate to create note page
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const NoteEditorPage()),
     );
 
-    // Reload notes after returning from create page
-    if (result != null) {
+    if (result == true) {
       _loadNotes();
     }
   }
 
   void _navigateToEditNote(NoteModel note) async {
-    // Navigate to edit note page
-    // final result = await Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => NoteEditorPage(note: note),
-    //   ),
-    // );
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => NoteEditorPage(note: note)),
+    );
 
-    // Reload notes after returning from edit page
-    // if (result != null) {
-    //   _loadNotes();
-    // }
+    if (result == true) {
+      _loadNotes();
+    }
   }
 
-  void _deleteNote(int noteId) {
+  void _deleteNote(NoteModel note) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -71,21 +65,42 @@ class _NoteListPageState extends State<NoteHomePage> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              // TODO: Delete from database
-              // setState(() {
-              //   //_notes.removeWhere((note) => note.id == noteId);
-              // });
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Note deleted')));
+              await _confirmDelete(note);
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDelete(NoteModel note) async {
+    final docId = note.noteId?.toString() ?? '';
+    if (docId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot delete note without an id')),
+      );
+      return;
+    }
+
+    try {
+      await fsHelper.removeNote(docId);
+      await _loadNotes();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Note deleted')));
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to delete note: $e')));
+    }
   }
 
   String _formatDate(DateTime date) {
@@ -177,7 +192,7 @@ class _NoteListPageState extends State<NoteHomePage> {
             ),
             trailing: IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.red),
-              onPressed: () => _deleteNote(note.noteId),
+              onPressed: () => _deleteNote(note),
             ),
             onTap: () => _navigateToEditNote(note),
           ),
