@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_note/db_helper.dart';
+import 'package:flutter_note/firebase/firestore_helper.dart';
 import 'package:flutter_note/models/note_model.dart';
 
 class NoteEditorPage extends StatefulWidget {
-  const NoteEditorPage({Key? key}) : super(key: key);
+  const NoteEditorPage({super.key});
 
   @override
   State<NoteEditorPage> createState() => _NoteEditorPageState();
 }
 
 class _NoteEditorPageState extends State<NoteEditorPage> {
-  final DbHelper dbHelper = DbHelper.instance;
+  final FirestoreHelper fsHelper = FirestoreHelper();
 
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
@@ -23,40 +23,41 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     super.dispose();
   }
 
+  // * Fungsionalitas Save Note ke Firestore
   Future _saveNote() async {
-    if (_formKey.currentState!.validate()) {
-      // Get the note data
-      final title = _titleController.text;
-      final content = _contentController.text;
+    if (!_formKey.currentState!.validate()) return;
 
-      final result = dbHelper.insertItem(
-        NoteModel(
-          noteId: null,
-          title: title,
-          content: content,
-          createdAt: DateTime.now().toIso8601String(),
-          updatedAt: DateTime.now().toIso8601String(),
-          pinned: false,
+    final note = NoteModel(
+      noteId: null,
+      title: _titleController.text,
+      content: _contentController.text,
+      createdAt: DateTime.now().toIso8601String(),
+      updatedAt: DateTime.now().toIso8601String(),
+      pinned: false,
+    );
+
+    try {
+      await fsHelper.addNote(note);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Note saved successfully!'),
+          backgroundColor: Colors.green,
         ),
       );
 
-      // TODO: Save the note to database or storage
-      print(
-        'Saving note - Title: $title, Content: $content, Id: ${await result}',
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save note: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
-
-      // Show success message
-      if (await result > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Note saved successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-
-      // Navigate back
-      Navigator.pop(context, result);
     }
   }
 
