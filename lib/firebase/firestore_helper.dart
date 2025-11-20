@@ -9,15 +9,24 @@ class FirestoreHelper {
         toFirestore: (note, _) => note.toJson(),
       );
 
+  // * Fungsi add notes
   Future addNote(NoteModel note) async {
-    await noteRef.add(note);
-    // await noteRef.doc(note.noteId).set(note);
+    final docRef = await noteRef.add(note);
+    return docRef.id;
   }
 
+  // * Fungsi get notes
   Future<List<NoteModel>> getAllNotes() async {
     final dataSnapshot = await noteRef.get();
-    return dataSnapshot.docs.map((doc) => doc.data()).toList();
+    return dataSnapshot.docs.map((doc) {
+      final note = doc.data();
+      note.noteId = doc.id;
+      return note;
+    }).toList();
   }
 
-  Future removeNote(NoteModel note) async {}
+  // * Fungsi menghapus note
+  Future<void> removeNote(String noteId) async {
+    await noteRef.doc(noteId).delete();
+  }
 }

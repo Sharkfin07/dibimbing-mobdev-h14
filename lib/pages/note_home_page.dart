@@ -22,8 +22,9 @@ class _NoteListPageState extends State<NoteHomePage> {
   }
 
   Future<void> _loadNotes() async {
-    // Simulating database with sample data
     final noteList = await fsHelper.getAllNotes();
+
+    if (!mounted) return;
 
     setState(() {
       _notes = noteList;
@@ -37,7 +38,6 @@ class _NoteListPageState extends State<NoteHomePage> {
       MaterialPageRoute(builder: (context) => const NoteEditorPage()),
     );
 
-    // Reload notes after returning from create page
     if (result != null) {
       _loadNotes();
     }
@@ -58,7 +58,7 @@ class _NoteListPageState extends State<NoteHomePage> {
     // }
   }
 
-  void _deleteNote(int noteId) {
+  void _deleteNote(NoteModel note) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -70,21 +70,42 @@ class _NoteListPageState extends State<NoteHomePage> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              // TODO: Delete from database
-              // setState(() {
-              //   //_notes.removeWhere((note) => note.id == noteId);
-              // });
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Note deleted')));
+              await _confirmDelete(note);
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDelete(NoteModel note) async {
+    final docId = note.noteId?.toString() ?? '';
+    if (docId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot delete note without an id')),
+      );
+      return;
+    }
+
+    try {
+      await fsHelper.removeNote(docId);
+      await _loadNotes();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Note deleted')));
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to delete note: $e')));
+    }
   }
 
   String _formatDate(DateTime date) {
@@ -176,7 +197,7 @@ class _NoteListPageState extends State<NoteHomePage> {
             ),
             trailing: IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.red),
-              onPressed: () => _deleteNote(note.noteId),
+              onPressed: () => _deleteNote(note),
             ),
             onTap: () => _navigateToEditNote(note),
           ),
