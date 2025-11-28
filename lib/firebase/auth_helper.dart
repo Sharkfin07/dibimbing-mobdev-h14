@@ -50,8 +50,12 @@ class AuthHelper {
     return userCredential;
   }
 
-  Future<void> signOutWithGoogle() async {
+  Future<void> signOut() async {
     await googleSignIn.signOut();
     await firebaseAuth.signOut();
+  }
+
+  Future<void> signOutWithGoogle() async {
+    await signOut();
   }
 }

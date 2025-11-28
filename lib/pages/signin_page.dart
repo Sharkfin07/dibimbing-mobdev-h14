@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_note/firebase/auth_helper.dart';
+import 'package:flutter_note/firebase/firestore_user_helper.dart';
+import 'package:flutter_note/models/user_model.dart';
 
 class SigninPage extends StatefulWidget {
   const SigninPage({super.key});
@@ -12,6 +14,7 @@ class SigninPage extends StatefulWidget {
 
 class _SigninPageState extends State<SigninPage> {
   final AuthHelper authHelper = AuthHelper();
+  final FirestoreUserHelper fsUserHelper = FirestoreUserHelper();
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
@@ -156,6 +159,17 @@ class _SigninPageState extends State<SigninPage> {
       if (result == null) {
         _showSnackbar('Sign In cancelled');
         return;
+      }
+
+      final user = result.user;
+      if (user != null) {
+        await fsUserHelper.addOrUpdateUser(
+          UserModel(
+            userId: user.uid,
+            userName: user.displayName ?? '',
+            userEmail: user.email ?? '',
+          ),
+        );
       }
 
       if (mounted) {

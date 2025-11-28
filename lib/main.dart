@@ -1,6 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_note/firebase/auth_helper.dart';
 import 'package:flutter_note/firebase/firebase_options.dart';
 import 'package:flutter_note/pages/note_home_page.dart';
 import 'package:flutter_note/pages/signin_page.dart';
@@ -16,25 +19,36 @@ Future main() async {
   }
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+  );
 
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  MyApp({super.key});
+
+  final authHelper = AuthHelper();
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.lime),
-      ),
-      initialRoute: '/signin',
-      routes: {
-        '/home': (context) => const NoteHomePage(),
-        '/signup': (context) => const SignupPage(),
-        '/signin': (context) => const SigninPage(),
+    return StreamBuilder<User?>(
+      stream: authHelper.checkUserSignInState(),
+      builder: (context, snapshot) {
+        final initialRoute = snapshot.hasData ? '/home' : '/signin';
+        return MaterialApp(
+          title: 'Flutter Note',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.lime),
+          ),
+          initialRoute: initialRoute,
+          routes: {
+            '/home': (context) => const NoteHomePage(),
+            '/signup': (context) => const SignupPage(),
+            '/signin': (context) => const SigninPage(),
+          },
+        );
       },
     );
   }
