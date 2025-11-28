@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_note/firebase/firestore_helper.dart';
 import 'package:flutter_note/models/note_model.dart';
@@ -49,7 +50,7 @@ class _NoteListPageState extends State<NoteHomePage> {
     );
 
     if (result == true) {
-      _loadNotes();
+      // _loadNotes();
     }
   }
 
@@ -87,7 +88,7 @@ class _NoteListPageState extends State<NoteHomePage> {
 
     try {
       await fsHelper.removeNote(docId);
-      await _loadNotes();
+      // await _loadNotes();
 
       if (!mounted) return;
 
@@ -122,7 +123,7 @@ class _NoteListPageState extends State<NoteHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('My Notes'), elevation: 0),
-      body: _notes.isEmpty ? _buildEmptyState() : _buildNoteList(),
+      body: _notes.isEmpty ? _buildEmptyState() : _buildNoteStream(),
       floatingActionButton: FloatingActionButton(
         onPressed: _navigateToCreateNote,
         tooltip: 'Create new note',
@@ -156,47 +157,109 @@ class _NoteListPageState extends State<NoteHomePage> {
     );
   }
 
-  Widget _buildNoteList() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(8.0),
-      itemCount: _notes.length,
-      itemBuilder: (context, index) {
-        final note = _notes[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            title: Text(
-              note.title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                Text(
-                  note.content,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.grey[700]),
+  // Widget _buildNoteList() {
+  //   return ListView.builder(
+  //     padding: const EdgeInsets.all(8.0),
+  //     itemCount: _notes.length,
+  //     itemBuilder: (context, index) {
+  //       final note = _notes[index];
+  //       return Card(
+  //         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+  //         shape: RoundedRectangleBorder(
+  //           borderRadius: BorderRadius.circular(16),
+  //         ),
+  //         child: ListTile(
+  //           contentPadding: const EdgeInsets.all(16),
+  //           title: Text(
+  //             note.title,
+  //             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+  //           ),
+  //           subtitle: Column(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: [
+  //               const SizedBox(height: 8),
+  //               Text(
+  //                 note.content,
+  //                 maxLines: 2,
+  //                 overflow: TextOverflow.ellipsis,
+  //                 style: TextStyle(color: Colors.grey[700]),
+  //               ),
+  //               const SizedBox(height: 8),
+  //               Text(
+  //                 _formatDate(DateTime.parse(note.createdAt)),
+  //                 style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+  //               ),
+  //             ],
+  //           ),
+  //           trailing: IconButton(
+  //             icon: const Icon(Icons.delete_outline, color: Colors.red),
+  //             onPressed: () => _deleteNote(note),
+  //           ),
+  //           onTap: () => _navigateToEditNote(note),
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
+
+  Widget _buildNoteStream() {
+    return StreamBuilder<QuerySnapshot<NoteModel>>(
+      stream: fsHelper.getNoteStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _buildEmptyState();
+        } else {
+          final notes = snapshot.data!.docs;
+          return ListView.builder(
+            padding: const EdgeInsets.all(8.0),
+            itemCount: notes.length,
+            itemBuilder: (context, index) {
+              final note = notes.elementAt(index).data();
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  _formatDate(DateTime.parse(note.createdAt)),
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  title: Text(
+                    note.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      Text(
+                        note.content,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: Colors.grey[700]),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _formatDate(DateTime.parse(note.createdAt)),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: () => _deleteNote(note),
+                  ),
+                  onTap: () => _navigateToEditNote(note),
                 ),
-              ],
-            ),
-            trailing: IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              onPressed: () => _deleteNote(note),
-            ),
-            onTap: () => _navigateToEditNote(note),
-          ),
-        );
+              );
+            },
+          );
+        }
       },
     );
   }

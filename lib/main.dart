@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_note/firebase/firebase_options.dart';
 import 'package:flutter_note/pages/note_home_page.dart';
+import 'package:flutter_note/pages/signin_page.dart';
+import 'package:flutter_note/pages/signup_page.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
@@ -28,7 +30,12 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.lime),
       ),
-      home: const NoteHomePage(),
+      initialRoute: '/signin',
+      routes: {
+        '/home': (context) => const NoteHomePage(),
+        '/signup': (context) => const SignupPage(),
+        '/signin': (context) => const SigninPage(),
+      },
     );
   }
 }

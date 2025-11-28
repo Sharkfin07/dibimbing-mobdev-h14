@@ -12,12 +12,16 @@ class FirestoreHelper {
   // * Fungsi add notes
   Future addNote(NoteModel note) async {
     final docRef = await noteRef.add(note);
+    final noteRefUpdated = noteRef.doc(docRef.id);
+    noteRefUpdated.update({'note_id': docRef.id});
     return docRef.id;
   }
 
   // * Fungsi get notes
   Future<List<NoteModel>> getAllNotes() async {
-    final dataSnapshot = await noteRef.get();
+    final dataSnapshot = await noteRef
+        .orderBy("updated_at", descending: true)
+        .get();
     return dataSnapshot.docs.map((doc) {
       final note = doc.data();
       note.noteId = doc.id;
@@ -33,5 +37,10 @@ class FirestoreHelper {
   // * Fungsi update note
   Future<void> updateNote(String noteId, NoteModel note) async {
     await noteRef.doc(noteId).set(note);
+  }
+
+  // * Stream
+  Stream<QuerySnapshot<NoteModel>> getNoteStream() {
+    return noteRef.snapshots();
   }
 }
