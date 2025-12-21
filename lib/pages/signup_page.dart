@@ -1,17 +1,16 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_note/firebase/auth_helper.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_note/providers/auth_provider.dart';
 
-class SignupPage extends StatefulWidget {
+class SignupPage extends ConsumerStatefulWidget {
   const SignupPage({super.key});
 
   @override
-  State<SignupPage> createState() => _SignupPageState();
+  ConsumerState<SignupPage> createState() => _SignupPageState();
 }
 
-class _SignupPageState extends State<SignupPage> {
-  final authHelper = AuthHelper();
-
+class _SignupPageState extends ConsumerState<SignupPage> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
@@ -119,9 +118,10 @@ class _SignupPageState extends State<SignupPage> {
 
   Future _register() async {
     try {
-      final result = await authHelper.signUpWithEmailAndPassword(
-        emailController.text,
-        passwordController.text,
+      final auth = ref.read(authActionProvider.notifier);
+      final result = await auth.signUpWithEmail(
+        emailController.text.trim(),
+        passwordController.text.trim(),
       );
       _showSnackbar('Signup success ${result.user?.email}');
 

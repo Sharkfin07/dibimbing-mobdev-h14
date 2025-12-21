@@ -1,17 +1,17 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_note/firebase/auth_helper.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_note/providers/auth_provider.dart';
 
-class SigninPage extends StatefulWidget {
+class SigninPage extends ConsumerStatefulWidget {
   const SigninPage({super.key});
 
   @override
-  State<SigninPage> createState() => _SigninPageState();
+  ConsumerState<SigninPage> createState() => _SigninPageState();
 }
 
-class _SigninPageState extends State<SigninPage> {
-  final AuthHelper authHelper = AuthHelper();
+class _SigninPageState extends ConsumerState<SigninPage> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
@@ -130,9 +130,10 @@ class _SigninPageState extends State<SigninPage> {
 
   Future _signInWithEmail() async {
     try {
-      final result = await authHelper.signInWithEmailAndPassword(
-        emailController.text,
-        passwordController.text,
+      final auth = ref.read(authActionProvider.notifier);
+      final result = await auth.signInWithEmail(
+        emailController.text.trim(),
+        passwordController.text.trim(),
       );
 
       if (mounted) {
@@ -151,7 +152,8 @@ class _SigninPageState extends State<SigninPage> {
 
   Future _signInWithGoogle() async {
     try {
-      final result = await authHelper.signInWithGoogle();
+      final auth = ref.read(authActionProvider.notifier);
+      final result = await auth.signInWithGoogle();
 
       if (result == null) {
         _showSnackbar('Sign In cancelled');
